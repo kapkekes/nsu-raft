@@ -1,0 +1,16 @@
+version = 1
+
+[formatters.default]
+class = "raft.extras.app.logging.ColorFormatter"
+format = "{asctime}.{msecs:03.0f} - {levelname:^10} - {message}"
+datefmt = "%Y-%m-%d %H:%M:%S"
+style = "{"
+
+[handlers.stdout]
+class = "logging.StreamHandler"
+stream = "ext://sys.stdout"
+formatter = "default"
+
+[loggers.raft]
+handlers = ["stdout"]
+level = "TRACE"
