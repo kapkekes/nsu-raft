@@ -13,7 +13,7 @@ from fastapi import FastAPI, Request, Response
 from fastapi.responses import PlainTextResponse
 
 from raft.extras import app
-from raft.nodes.naive import NaiveNode
+from raft.nodes.naive import NaiveConfig, NaiveNode
 from raft.protocol.shared import server_id
 from raft.transport.messengers.http import HttpMessenger
 from raft.transport.responders.http import HttpResponder
@@ -97,7 +97,12 @@ async def amain(args: Arguments) -> None:
     node = NaiveNode(
         server_id=server_id(local),
         responsders=[HttpResponder(local.host, local.port + 100)],
-        messengers=[HttpMessenger(server_id(address), address.host, address.port + 100) for address in remote]
+        messengers=[HttpMessenger(server_id(address), address.host, address.port + 100) for address in remote],
+        config=NaiveConfig(
+            heartbeat_period=0.2,
+            election_period_const=0.7,
+            election_period_rnd=0.3,
+        )
     )
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> collections.abc.AsyncGenerator[None, Any]:

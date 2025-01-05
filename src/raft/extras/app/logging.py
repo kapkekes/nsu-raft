@@ -6,9 +6,9 @@ import logging
 from collections.abc import Mapping
 from typing import Any, Literal
 
-TRACE_INT = 5
+TRACE_INT = logging.DEBUG - 5
 TRACE_NAME = "TRACE"
-logging.addLevelName(5, "TRACE")
+logging.addLevelName(TRACE_INT, "TRACE")
 
 COLORS = {
     TRACE_INT: "\x1b[37;20m",

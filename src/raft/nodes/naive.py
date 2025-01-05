@@ -9,7 +9,6 @@ import random
 from collections.abc import Awaitable, Iterable, Sequence
 from typing import Any, TypedDict, TypeVar
 
-from raft.extras.app.logging import TRACE_INT
 from raft.nodes.abc import Node
 from raft.protocol.log import Log, LogEntry, Storage
 from raft.protocol.messages import AppendEntriesMessage, RequestVoteMessage
@@ -20,6 +19,7 @@ from raft.transport.messengers.abc import Messenger
 from raft.transport.responders.abc import Responder
 
 T = TypeVar("T")
+TRACE_L = logging.DEBUG - 5
 logger = logging.getLogger(__name__)
 
 
@@ -172,7 +172,7 @@ class NaiveNode(Node):
         )
 
     async def dispatch_append_entries_message(self, message: AppendEntriesMessage) -> AppendEntriesResponse:
-        logger.log(TRACE_INT, "received AppendEntires from '%s'", message.leader_id)
+        logger.log(TRACE_L, "received AppendEntires from '%s'", message.leader_id)
         if message.term < self._current_term:
             logger.debug("discarded AppendEntires from '%s', as their term is less than mine", message.leader_id)
             return AppendEntriesResponse(term=self._current_term, success=False)
@@ -204,7 +204,7 @@ class NaiveNode(Node):
         return AppendEntriesResponse(term=self._current_term, success=True)
 
     async def dispatch_append_entries_response(self, server_id: ServerId, response: AppendEntriesResponse) -> None:
-        logger.log(TRACE_INT, "received AppendEntries repsonse from '%s'", server_id)
+        logger.log(TRACE_L, "received AppendEntries repsonse from '%s'", server_id)
         await self._update_term(response.term)
         if self.state != State.LEADER:
             return logger.debug(
@@ -221,7 +221,7 @@ class NaiveNode(Node):
             self._match_index[server_id] = 0
 
     async def dispatch_request_vote_message(self, message: RequestVoteMessage) -> RequestVoteResponse:
-        logger.log(TRACE_INT, "received RequestVote from '%s'", message.candidate_id)
+        logger.log(TRACE_L, "received RequestVote from '%s'", message.candidate_id)
         if message.term < self._current_term:
             logger.debug("discarded RequestVote from '%s', as their term is less than mine", message.candidate_id)
             return RequestVoteResponse(term=self._current_term, vote_granted=False)
@@ -242,7 +242,7 @@ class NaiveNode(Node):
         return RequestVoteResponse(term=self._current_term, vote_granted=True)
 
     async def dispatch_request_vote_response(self, server_id: ServerId, response: RequestVoteResponse) -> None:
-        logger.log(TRACE_INT, "received RequestVote repsonse from '%s'", server_id)
+        logger.log(TRACE_L, "received RequestVote repsonse from '%s'", server_id)
         await self._update_term(response.term)
         if self.state != State.CANDIDATE:
             return logger.debug(
@@ -269,7 +269,7 @@ class NaiveNode(Node):
             prev_log_index = self._next_index[messenger._server_id] - 1
             entries = [self._log[self._next_index[server_id]]] if len(self._log) > self._next_index[server_id] else []
             message = self._append_entries_message(prev_log_index, entries)
-            logger.log(TRACE_INT, "sending heartbeat to '%s'", server_id)
+            logger.log(TRACE_L, "sending heartbeat to '%s'", server_id)
             tasks.append(asyncio.ensure_future(self._with_timeout(messenger.send_append_entries(message))))
         _ = asyncio.gather(*tasks, return_exceptions=True)
         await self._schedule_heartbeat.plan()
@@ -285,7 +285,7 @@ class NaiveNode(Node):
         tasks = []
         message = self._request_vote_message()
         for messenger in self._messengers:
-            logger.log(TRACE_INT, "sending vote request to '%s'", messenger._server_id)
+            logger.log(TRACE_L, "sending vote request to '%s'", messenger._server_id)
             tasks.append(asyncio.ensure_future(self._with_timeout(messenger.send_request_vote(message))))
         _ = asyncio.gather(*tasks, return_exceptions=True)
         await self._schedule_election.plan()
